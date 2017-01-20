@@ -1,13 +1,19 @@
 #Builds bootable disk image:
 
-#Creates blank disk image.
-dd if=/dev/zero of=floppya.img bs=512 count=2880
-
 #Assembles bootload.asm
 nasm bootload.asm
 
+#Creates blank disk image.
+dd if=/dev/zero of=floppya.img bs=512 count=2880
+
 #Puts bootload into sector zero.
 dd if=bootload of=floppya.img bs=512 count=1 conv=notrunc
+
+#Places disk map in sector 1 of disk
+dd if=map.img of=floppya.img bs=512 count=1 seek=1 conv=notrunc
+
+#Places disk directory in sector 2 of disk.
+dd if=dir.img of=floppya.img bs=512 count=1 seek=2 conv=notrunc
 
 #Compiles kernel.c
 bcc -ansi -c -o kernel.o kernel.c

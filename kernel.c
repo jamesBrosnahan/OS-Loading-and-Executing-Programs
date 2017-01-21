@@ -51,6 +51,9 @@ void readString(char*);
 void clearScreen(int, int);
 void writeInt(int);
 void readInt(int*);
+void readSector(char*, int);
+void error(int);
+void readFile(char*, char*, int*);
 void handleInterrupt21(int, int, int, int);
 void readInt_test();
 void part_1_main();
@@ -250,6 +253,21 @@ void readInt(int* number)
    }
    
    return;
+}
+
+void readSector(char* buffer, int sector) {
+
+
+}
+
+void error(int bx) {
+
+
+}
+
+void readFile(char* fname, char* buffer, int* size) {
+
+
 }
 
 void handleInterrupt21(int ax, int bx, int cx, int dx){

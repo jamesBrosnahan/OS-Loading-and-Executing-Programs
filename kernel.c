@@ -24,6 +24,8 @@
 /*                                                                        */
 /* 3460:4/526 BlackDOS kernel, Version 1.03, Spring 2017.                 */
 
+/*colors used with clearScreen function*/
+/*Basic colors (foreground or background)*/
 #define BLACK 0
 #define BLUE 1
 #define GREEN 2
@@ -32,6 +34,7 @@
 #define MAGENTA 5
 #define BROWN 6
 #define WHITE 7
+/*Bright colors (foreground only)*/
 #define GRAY 8
 #define LIGHT_BLUE 9
 #define LIGHT_GREEN 10
@@ -43,8 +46,37 @@
 
 #define AH 0xE
 
+
 #define ENTER 0xD
 #define BACKSPACE 0x8
+
+/* macro functions for readSector*/
+/* a is the absolute sector number*/
+/*finds relative sector number*/
+#define relSecNo(a) (mod(a, 18) + 1)
+/*finds head number*/
+#define headNo(a) mod(div(a, 18), 2)
+/*finds track number*/
+#define trackNo(a) div(a, 36)
+
+/*constants for readSector*/
+/*tells BIOS to read sector*/
+#define READ_AH 2
+/*number of sectors read*/
+#define READ_AL 1
+/*device number*/
+#define READ_DL 0
+
+/**/
+#define MAP 0x200
+#define DIRECTORY 0x400
+#define ENTRIES 16
+#define ENTRY_SIZE 32
+#define NAME_LENGTH 6
+#define SECTOR_NUMBERS 26
+
+#define MAX_FILE_SIZE 13312
+
 
 void printString(char*);
 void readString(char*);
@@ -54,80 +86,19 @@ void readInt(int*);
 void readSector(char*, int);
 void error(int);
 void readFile(char*, char*, int*);
+void stop();
+void runProgram(char*, int);
 void handleInterrupt21(int, int, int, int);
-void readInt_test();
-void part_1_main();
 
 void main()
 {
-   char line[80];
-   int x;
-   int backgroundColor = BLACK;
-   int foregroundColor = WHITE;
-   
+    char buffer[MAX_FILE_SIZE];
+    int size;
     makeInterrupt21();
-    /* BlackDOS header with interrupts */
-    interrupt(33, 12, backgroundColor, foregroundColor, 0);
-    interrupt(33, 0, "Hello world\r\n\0", 0, 0);
-    interrupt(33, 0, "\r\n\0", 0, 0);
-    interrupt(33, 0, "Enter a line: \0", 0, 0);
-    interrupt(33, 1, line, 0, 0);
-    interrupt(33, 0, "You wrote: \0", 0, 0);
-    interrupt(33, 0,line,0,0);
-    interrupt(33, 0,"\r\n\0",0,0);
-    interrupt(33, 0, "Enter a number: \0", 0, 0);
-    interrupt(33, 14, &x, 0, 0);
-    interrupt(33, 0, "You entered \0", 0, 0);
-    interrupt(33, 13, x, 0, 0);
-    interrupt(33, 0, "\r\n\0", 0, 0);
-
+    /* BlackDOS header and clear screen*/
+    interrupt(33, 3, "msg\0", buffer, &size);
+    interrupt(33, 0, buffer, 0, 0);
     while(1);
-}
-
-void readInt_test(){
-    char line[80];
-    int x;
-   
-    /* BlackDOS header */
-    printString("Enter a line: \0");
-    readString(line);
-    printString("\r\nYou typed: \0");
-    printString(line);
-    printString("\r\n\0");
-    printString("Enter a number: \0");
-    readInt(&x);
-    printString("You entered \0");
-    writeInt(x);
-    printString("\r\n\0");
-    while (1);
-}
-
-void part_1_main(){
-   char line[80];
-   int x;
-   
-   /* makeInterrupt21(); */
-   clearScreen(CYAN, LIGHT_RED);
-
-   printString("___.   .__                 __       .___           \r\n\0");
-   printString("\\_ |__ |  | _____    ____ |  | __ __| _/___  ______\r\n\0");
-   printString(" | __ \\|  | \\__  \\ _/ ___\\|  |/ // __ |/ _ \\/  ___/\r\n\0");
-   printString(" | \\_\\ \\  |__/ /\\ \\\\  \\___|    </ /_/ ( <_> )___ \\ \r\n\0");
-   printString(" |___  /____(____  /\\___  >__|_ \\____ |\\___/____  >\r\n\0");
-   printString("     \\/          \\/     \\/     \\/    \\/         \\/ \r\n\0");
-   printString(" V. 1.03, C. 2017. Based on a project by M. Black. \r\n\0");
-   printString(" Author(s): your name(s) here.\r\n\r\n\0");
-   
-   printString("Hola mondo.\r\n\0");
-   printString("Enter a line: \0");
-   readString(line);
-   printString("\r\nYou typed: \0");
-   printString(line);
-   printString("\r\n\0");
-   /* x = 5; */
-   /* printString("Your number is \0"); */
-   /* writeInt(x); */
-   /* printString("\r\n\0"); */
 }
 
 /*printString function works correctly:*/
@@ -235,6 +206,7 @@ void writeInt(int x)
       d++;
    }
    printString(d);
+   return;
 }
 
 void readInt(int* number)
@@ -256,36 +228,164 @@ void readInt(int* number)
 }
 
 void readSector(char* buffer, int sector) {
-
-
+    /*  
+        read a disk sector into memory;
+        buffer is a predefined char array of at least 512 bytes
+        sector is an absolute sector number
+        track, head, and relative sector numbers are calculated in macro functions
+    */
+    
+    
+    int ax, bx, cx, dx;
+    bx = buffer;
+    ax = READ_AH * 256 + READ_AL;
+    cx = trackNo(sector) * 256 + relSecNo(sector);
+    dx = headNo(sector) * 256 + READ_DL;
+    
+    /* Correctly invokes BIOS interrupt 0x13 */
+    interrupt(0x13, ax, bx, cx, dx);
+    return;
 }
 
 void error(int bx) {
-
-
+    switch(bx){
+        case 0:
+            printString("File not found");
+            break;
+        default:
+            printString("General error");
+            
+    
+    }
+    return;
 }
+
 
 void readFile(char* fname, char* buffer, int* size) {
+    int i;
+    int j = 0;
+    char directory[512];
+    /*Load the directory into a 512-byte character array using readSector*/
+    readSector(directory, DIRECTORY);
+    /*Go through the directory trying to match the file name. 
+    If you don't find it, return an error.*/
+    /*iterate through 16 entries in the directory*/
+    for(i = 0; i < ENTRIES; i++){
+        /*read first 6 letters of directoy entry*/
+        for(j = 0;j < NAME_LENGTH && directory[(i*ENTRY_SIZE)+j] == fname[j]; j++){
+        }
+        if(j == NAME_LENGTH){
+            /*file found*/
+            break;
+        }else if(i == ENTRIES - 1){
+            /*file not found*/
+            error(0);
+            return;
+        }
+    }
+    
 
+    /*Using the sector numbers in the directory,
+     load the file, sector by sector, into buffer. 
+     You should add 512 to the buffer every time you call readSector */
+    while(directory[(i*ENTRY_SIZE)+j] != 0x0c){
+        readSector(buffer, directory[(i*ENTRY_SIZE)+j]);
+        buffer += 512;
+        j++;
+    }
+    
+    /*Write the sector count back and return*/
 
+    return;
 }
+
+void stop(){
+
+    return;
+}
+
+void runProgram(char* name, int segment){
+
+
+    return;
+}
+
 
 void handleInterrupt21(int ax, int bx, int cx, int dx){
     switch(ax){
-        case 0: /* ax=0, call printString(bx) */
+        case 0: 
+        /* 
+            ax=0, call printString(bx) 
+            
+        */
             printString(bx);
             break;
-        case 1: /* ax=1, call readString(bx) */
+        case 1: 
+        /* 
+            ax=1, call readString(bx) 
+            
+        */
             readString(bx);
             break;
-        case 12: /* ax = 12, call clearScreen(bx, cx) */
+        case 2: 
+        /* 
+            ax=2. call readSector(bx, cx) 
+        
+        
+        */
+            readSector(bx, cx);
+            break;
+        case 3: 
+        /* 
+            ax=3, call readFile(bx, cx, dx) 
+            
+        */
+            readFile(bx, cx, dx);
+            break;
+        case 4: 
+        /*  
+            ax=4, call runProgram(bx, cx)
+            launchs a program
+            bx is a char * that represents the name of the program
+            cx is the segment where the program is to ran, 2 to 9 inclusive
+        */
+            runProgram(bx, cx);
+            break;
+        case 5: 
+        /* 
+            ax=5, call stop() 
+            
+        */
+            stop();
+            break;
+        case 12: 
+        /* 
+            ax = 12, call clearScreen(bx, cx)
+            
+        */
             clearScreen(bx, cx);
             break;
-        case 13: /* ax = 13, call writeInt(bx) */
+        case 13: 
+        /* 
+            ax = 13, call writeInt(bx) 
+            
+        */
             writeInt(bx);
             break;
-        case 14: /* ax = 14, call readInt(bx) */
+        case 14: 
+        /* 
+            ax = 14, call readInt(bx) 
+        
+        
+        */
             readInt(bx);
+            break;
+        case 15: 
+        /* 
+            writes an error message based upon the error number
+            bx is an error number
+        */
+            error(bx);
             break;
     }
 }

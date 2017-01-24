@@ -77,6 +77,11 @@
 
 #define MAX_FILE_SIZE 13312
 
+typedef int bool;
+#define true 1
+#define false 0
+
+
 
 void printString(char*);
 void readString(char*);
@@ -264,24 +269,26 @@ void error(int bx) {
 void readFile(char* fname, char* buffer, int* size) {
     int i;
     int j = 0;
-    char directory[512];
-    /*Load the directory into a 512-byte character array using readSector*/
-    readSector(directory, DIRECTORY);
+	char directory[512];
+	bool found = false;
+    
     /*Go through the directory trying to match the file name. 
     If you don't find it, return an error.*/
     /*iterate through 16 entries in the directory*/
     for(i = 0; i < ENTRIES; i++){
+		/*Load the directory into a 512-byte character array using readSector*/
+		readSector(directory, DIRECTORY+(i*0x10));
         /*read first 6 letters of directoy entry*/
-        for(j = 0;j < NAME_LENGTH && directory[(i*ENTRY_SIZE)+j] == fname[j]; j++){
-        }
-        if(j == NAME_LENGTH){
-            /*file found*/
-            break;
-        }else if(i == ENTRIES - 1){
-            /*file not found*/
-            error(0);
-            return;
-        }
+		for (j = 0; j < NAME_LENGTH && (fname[j] == directory[j] || fname[j] == '\0'); j++) {
+			if (fname[j] == '\0' || j == NAME_LENGTH - 1) {
+				found = true;
+				printString("File found");
+				break;
+			}
+		}
+		if (found) {
+			break;
+		}
     }
     
 

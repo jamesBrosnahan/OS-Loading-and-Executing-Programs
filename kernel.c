@@ -272,35 +272,53 @@ void readFile(char* fname, char* buffer, int* size) {
 	char directory[512];
 	bool found = false;
     
+    printString(fname);
     /*Go through the directory trying to match the file name. 
     If you don't find it, return an error.*/
     /*iterate through 16 entries in the directory*/
     for(i = 0; i < ENTRIES; i++){
 		/*Load the directory into a 512-byte character array using readSector*/
-		readSector(directory, DIRECTORY+(i*0x10));
+		readSector(directory, DIRECTORY+(i*0x020));
+		printString("Looping: ");
+		writeInt(i);
         /*read first 6 letters of directoy entry*/
-		for (j = 0; j < NAME_LENGTH && (fname[j] == directory[j] || fname[j] == '\0'); j++) {
-			if (fname[j] == '\0' || j == NAME_LENGTH - 1) {
-				found = true;
-				printString("File found");
-				break;
-			}
-		}
-		if (found) {
-			break;
-		}
-    }
-    
+		for (j = 0; j < NAME_LENGTH; j++) {
+		
+		    if(fname[j] != directory[j]){
+		        printString("Not found");
+		        writeInt(j);
+		        found = false;
+		    }else if(fname[j] == '\0'){
+		        found = true;
+		        printString("Found");
+		        break;
+		    }
 
-    /*Using the sector numbers in the directory,
-     load the file, sector by sector, into buffer. 
-     You should add 512 to the buffer every time you call readSector */
-    while(directory[(i*ENTRY_SIZE)+j] != 0x0c){
+		}
+        if(found == true){
+             /*
+             Using the sector numbers in the directory,
+             load the file, sector by sector, into buffer. 
+             You should add 512 to the buffer every time you call readSector */
+             for(j = 0;j < SECTOR_NUMBERS && directory[j+6] != 0x0c; j++){
+                readSector(buffer, directory[j+6]);
+                buffer += 512;
+                size = j;
+             }
+             return;
+             break;
+        }
+    }
+    if(found == false){
+        error(0);
+    }
+
+    /*while(directory[(i*ENTRY_SIZE)+j] != 0x0c){
         readSector(buffer, directory[(i*ENTRY_SIZE)+j]);
         buffer += 512;
         j++;
     }
-    
+    */
     /*Write the sector count back and return*/
 
     return;

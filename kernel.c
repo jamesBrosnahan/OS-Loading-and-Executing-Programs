@@ -237,9 +237,9 @@ void readSector(char* buffer, int sector) {
         read a disk sector into memory;
         buffer is a predefined char array of at least 512 bytes
         sector is an absolute sector number
+
         track, head, and relative sector numbers are calculated in macro functions
     */
-    
     
     int ax, bx, cx, dx;
     bx = buffer;
@@ -265,76 +265,70 @@ void error(int bx) {
     return;
 }
 
-
 void readFile(char* fname, char* buffer, int* size) {
     int i;
-    int j = 0;
+    int j;
 	char directory[512];
 	bool found = false;
-    
-    printString(fname);
+
+	/*Load the directory into a 512-byte character array using readSector*/
+	readSector(directory, DIRECTORY);
+	printString(directory);
     /*Go through the directory trying to match the file name. 
     If you don't find it, return an error.*/
     /*iterate through 16 entries in the directory*/
-    for(i = 0; i < ENTRIES; i++){
-		/*Load the directory into a 512-byte character array using readSector*/
-		readSector(directory, DIRECTORY+(i*0x020));
-		printString("Looping: ");
-		writeInt(i);
-        /*read first 6 letters of directoy entry*/
+	for (i = 0; i < ENTRIES; i++) {
+
+		/*read first 6 letters of directoy entry*/
 		for (j = 0; j < NAME_LENGTH; j++) {
-		
-		    if(fname[j] != directory[j]){
-		        printString("Not found");
-		        writeInt(j);
-		        found = false;
-		    }else if(fname[j] == '\0'){
-		        found = true;
-		        printString("Found");
-		        break;
-		    }
-
+			//&& (fname[j] == directory[j + (i * 32)] || fname[j] == '\0')
+			writeInt(i);
+			printString("Reading file name");
+			if (fname[j] == directory[j + (i * 32)] && fname[j] != '\0') {
+				printString("Chars do match");
+				
+			}else if(fname[j] != directory[j + (i * 32)] && fname[j] != '\0'){
+				printString("Chars do not match");
+				break;
+			}else if(fname[j] == '\0'){
+				printString("Entry found");
+				found = true;
+				break;
+			}
+			
 		}
-        if(found == true){
-             /*
-             Using the sector numbers in the directory,
-             load the file, sector by sector, into buffer. 
-             You should add 512 to the buffer every time you call readSector */
-             for(j = 0;j < SECTOR_NUMBERS && directory[j+6] != 0x0c; j++){
-                readSector(buffer, directory[j+6]);
-                buffer += 512;
-                size = j;
-             }
-             return;
-             break;
-        }
-    }
-    if(found == false){
-        error(0);
-    }
-
-    /*while(directory[(i*ENTRY_SIZE)+j] != 0x0c){
-        readSector(buffer, directory[(i*ENTRY_SIZE)+j]);
-        buffer += 512;
-        j++;
-    }
-    */
+		if (found == true) {
+			break;
+		}
+	}
+	if(found == true){
+		/*
+		Using the sector numbers in the directory,
+		load the file, sector by sector, into buffer. 
+		You should add 512 to the buffer every time you call readSector */
+		for(j = 0;j < SECTOR_NUMBERS && directory[j+6] != 0x00; j++){
+			printString("Loading");
+			writeInt(j);
+            readSector(buffer, directory[j+6]*512);
+            buffer += 512;
+            size += 1;
+            }
+			return;
+	}else if(found == false){
+		error(0);
+	}
     /*Write the sector count back and return*/
 
     return;
 }
 
 void stop(){
-
     return;
 }
 
 void runProgram(char* name, int segment){
-
-
     return;
 }
-
 
 void handleInterrupt21(int ax, int bx, int cx, int dx){
     switch(ax){

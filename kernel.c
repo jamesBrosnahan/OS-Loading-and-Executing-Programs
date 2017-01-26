@@ -281,20 +281,28 @@ void readFile(char* fname, char* buffer, int* size) {
 
 		/*read first 6 letters of directoy entry*/
 		for (j = 0; j < NAME_LENGTH; j++) {
-			//&& (fname[j] == directory[j + (i * 32)] || fname[j] == '\0')
+			printString("I is equal to: ");
 			writeInt(i);
-			printString("Reading file name");
-			if (fname[j] == directory[j + (i * 32)] && fname[j] != '\0') {
-				printString("Chars do match");
-				
-			}else if(fname[j] != directory[j + (i * 32)] && fname[j] != '\0'){
-				printString("Chars do not match");
-				break;
-			}else if(fname[j] == '\0'){
-				printString("Entry found");
+			printString("\r\n");
+			printString("J is equal to: ");
+			writeInt(j);
+			printString("\r\n");
+			writeInt(j + (i * 32));
+			printString("\r\n");
+			printString("Reading file name\n\r");
+			if (fname[j] != '\0') {
+				if (fname[j] == directory[j + (i * 32)]) {
+					printString("Chars do match\n\r");
+				}else if(fname[j] != directory[j + (i * 32)]){
+					printString("Chars do not match\n\r");
+					break;
+				}
+			}else if (fname[j] == '\0') {
+				printString("Entry found\r\n");
 				found = true;
 				break;
 			}
+			
 			
 		}
 		if (found == true) {

@@ -68,8 +68,8 @@
 #define READ_DL 0
 
 /**/
-#define MAP 0x200
-#define DIRECTORY 0x400
+#define MAP 0x1
+#define DIRECTORY 0x2
 #define ENTRIES 16
 #define ENTRY_SIZE 32
 #define NAME_LENGTH 6
@@ -101,7 +101,7 @@ void main()
     int size;
     makeInterrupt21();
     /* BlackDOS header and clear screen*/
-    interrupt(33, 3, "msg\0", buffer, &size);
+	interrupt(33, 3, "KERNEL\0", buffer, &size);
     interrupt(33, 0, buffer, 0, 0);
     while(1);
 }
@@ -117,7 +117,6 @@ void printString(char* c)
         interrupt(0x10, AH*256+c[index], 0, 0, 0);
         index++;
    }
-   
    return;
 }
 /*readString function works correctly:*/
@@ -240,15 +239,13 @@ void readSector(char* buffer, int sector) {
 
         track, head, and relative sector numbers are calculated in macro functions
     */
-    
-    int ax, bx, cx, dx;
-    bx = buffer;
-    ax = READ_AH * 256 + READ_AL;
-    cx = trackNo(sector) * 256 + relSecNo(sector);
-    dx = headNo(sector) * 256 + READ_DL;
-    
+	int ax = READ_AH * 256 + READ_AL;
+    int bx = buffer;
+    int cx = trackNo(sector) * 256 + relSecNo(sector);
+    int dx = headNo(sector) * 256 + READ_DL;
     /* Correctly invokes BIOS interrupt 0x13 */
     interrupt(0x13, ax, bx, cx, dx);
+
     return;
 }
 
@@ -269,18 +266,22 @@ void readFile(char* fname, char* buffer, int* size) {
     int i;
     int j;
 	char directory[512];
+	char file_name[6];
+	char sectors[26];
 	bool found = false;
 
 	/*Load the directory into a 512-byte character array using readSector*/
 	readSector(directory, DIRECTORY);
-	printString(directory);
+
     /*Go through the directory trying to match the file name. 
     If you don't find it, return an error.*/
     /*iterate through 16 entries in the directory*/
 	for (i = 0; i < ENTRIES; i++) {
-
 		/*read first 6 letters of directoy entry*/
-		for (j = 0; j < NAME_LENGTH; j++) {
+		for (j = 0; j <= NAME_LENGTH; j++) {
+			/*
+			writeInt(directory[j + (i * 64)]);
+			printString("\n\r");
 			printString("I is equal to: ");
 			writeInt(i);
 			printString("\r\n");
@@ -290,11 +291,14 @@ void readFile(char* fname, char* buffer, int* size) {
 			writeInt(j + (i * 32));
 			printString("\r\n");
 			printString("Reading file name\n\r");
+			*/
+
 			if (fname[j] != '\0') {
+
 				if (fname[j] == directory[j + (i * 32)]) {
-					printString("Chars do match\n\r");
+					//printString("Chars do match\n\r");
 				}else if(fname[j] != directory[j + (i * 32)]){
-					printString("Chars do not match\n\r");
+					//printString("Chars do not match\n\r");
 					break;
 				}
 			}else if (fname[j] == '\0') {
@@ -317,10 +321,13 @@ void readFile(char* fname, char* buffer, int* size) {
 		for(j = 0;j < SECTOR_NUMBERS && directory[j+6] != 0x00; j++){
 			printString("Loading");
 			writeInt(j);
-            readSector(buffer, directory[j+6]*512);
+            readSector(buffer, directory[j+6]);
             buffer += 512;
             size += 1;
             }
+		for (i = 0; i < size; i++) {
+			buffer -= 512;
+		}
 			return;
 	}else if(found == false){
 		error(0);
